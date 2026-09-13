@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'" />
+  <title>TFT Helper launcher</title>
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: transparent;   /* window is transparent: only the circle shows */
+      overflow: hidden;
+      user-select: none;
+      cursor: default;
+    }
+
+    #btn {
+      position: absolute;
+      inset: 4px;                /* 64px window, 56px button, 4px halo for the shadow */
+      border-radius: 50%;
+      border: 1px solid #ffcd6e66;
+      background: radial-gradient(circle at 32% 26%, #26314e, #131a2b 78%);
+      box-shadow: 0 4px 14px #000a, 0 0 0 1px #0006;
+      display: grid;
+      place-items: center;
+      transition: transform .12s ease, box-shadow .12s ease;
+      -webkit-app-region: no-drag; /* dragging is done manually, see launcher.js */
+    }
+    #btn:hover {
+      transform: scale(1.06);
+      border-color: #ffcd6ecc;
+      box-shadow: 0 6px 18px #000b, 0 0 14px #ffcd6e44;
+    }
+    #btn.dragging { transform: scale(.94); cursor: grabbing; }
+
+    svg { pointer-events: none; }  /* every pointer event belongs to #btn */
+  </style>
+</head>
+<body>
+  <div id="btn" title="TFT Helper - click to show/hide, drag to move, right-click for menu">
+    <!-- Same board-cell glyph as the app and tray icons: gold hex ring, blue pip -->
+    <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+      <polygon points="24.5,13 18.75,22.96 7.25,22.96 1.5,13 7.25,3.04 18.75,3.04" fill="#ffcd6e"/>
+      <polygon points="21.5,13 17.25,20.36 8.75,20.36 4.5,13 8.75,5.64 17.25,5.64" fill="#151d2f"/>
+      <polygon points="17.6,13 15.3,16.98 10.7,16.98 8.4,13 10.7,9.02 15.3,9.02" fill="#5c8cff"/>
+    </svg>
+  </div>
+  <script src="launcher.js"></script>
+</body>
+</html>

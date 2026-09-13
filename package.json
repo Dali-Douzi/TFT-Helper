@@ -1,0 +1,67 @@
+{
+  "name": "tft-helper",
+  "productName": "TFT Helper",
+  "version": "1.0.0",
+  "description": "A personal desktop container for a pinned set of websites.",
+  "main": "src/main.js",
+  "license": "MIT",
+  "author": "Dali",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder --win nsis",
+    "build:portable": "electron-builder --win portable",
+    "pack": "electron-builder --dir",
+    "icons": "node build/make-icons.js"
+  },
+  "devDependencies": {
+    "electron": "^44.2.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.dali.tfthelper",
+    "productName": "TFT Helper",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "node_modules/**/*",
+      "build/icon.ico",
+      "build/icon.png",
+      "build/tray.ico",
+      "package.json"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "TFT Helper",
+      "artifactName": "TFTHelper-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "TFTHelper-${version}-portable.${ext}"
+    },
+    "asarUnpack": [
+      "node_modules/koffi/**"
+    ]
+  },
+  "dependencies": {
+    "@ghostery/adblocker-electron": "^2.18.2",
+    "koffi": "^3.2.1"
+  }
+}
