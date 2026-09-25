@@ -122,7 +122,15 @@ One JSON file: `%APPDATA%\TFT Helper\tfthelper.config.json`
 
 ```json
 {
-  "sites": [{ "id": "metatft", "name": "MetaTFT", "url": "...", "icon": "..." }],
+  "sites": [
+    {
+      "id": "metatft",
+      "name": "MetaTFT",
+      "url": "https://www.metatft.com/explorer",
+      "lastUrl": "https://www.metatft.com/units/Jinx",
+      "icon": "..."
+    }
+  ],
   "activeSiteId": "metatft",
   "launcherPos": { "x": 24, "y": 24 },
   "launcherVisible": true,
@@ -291,6 +299,10 @@ rotates at 5 MB keeping one old file.
 | **Floating button** | the always-on-top circle, default position tucked a third past the **left edge** at `x -20, y 821`. Drag it anywhere |
 | **Global hotkey** | `Ctrl+Alt+T` from anywhere, including mid-game |
 
+The titlebar shows the address of the page the active site is on. It is
+read-only — clicking it selects the whole address so you can copy it, and the
+button beside it opens that exact page in your normal browser.
+
 The titlebar has a single close button, and it **hides** the panel — the app
 keeps running behind the tray icon and the floating button. There is no minimise
 or maximise; the panel is a companion window, not an app you manage. `Ctrl+Q`,
@@ -431,6 +443,25 @@ the DOM**. Switching only toggles a class:
 webview has no layout box, so it forgets its size and has to re-lay-out (and
 sometimes re-render badly) when you switch back. Hidden-but-laid-out costs
 nothing to paint and keeps the size correct.
+
+**Every site reopens on the page you left it on.** `url` is the home address
+you configured; `lastUrl` is wherever that site actually was, and it is what
+gets loaded. Without it a site you had navigated deep into came back to its
+front page — open a video, close the app, and you were back on the home feed.
+
+Navigation is recorded from both `did-navigate` and `did-navigate-in-page`. The
+second matters more than it looks: single-page sites move by `history.pushState`
+and never fire the first, so YouTube going from the feed to a video would go
+unnoticed with only `did-navigate`.
+
+Saves are debounced by 800 ms, since clicking around a single-page site fires a
+burst of these and every save rewrites the config. To close the gap that leaves,
+the main process reads the live address of every open site directly from its
+`webContents` in `before-quit` (`captureLiveUrls`), so quitting seconds after
+navigating still records where you were.
+
+Editing a site's URL clears its `lastUrl` — you are setting a new home, so a
+remembered spot inside the old site is meaningless.
 
 **Every site loads at startup**, so the first click on any of them is instant.
 The site you were last on gets a head start: the rest wait until it has finished

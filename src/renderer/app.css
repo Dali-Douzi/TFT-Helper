@@ -38,7 +38,68 @@ body { display: flex; flex-direction: column; }
 }
 #tb-title { font-size: 12px; color: var(--muted); }
 #tb-build { font-size: 11px; color: #5a6478; }
-#tb-hint { font-size: 11px; color: #6f7b93; }
+#tb-hint {
+  font-size: 11px;
+  color: #6f7b93;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 34ch;
+}
+
+/* ------------------------------------------------------------------ url bar */
+
+#urlbar {
+  flex: 1;
+  min-width: 0;               /* lets the input shrink instead of pushing the close button off */
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 620px;
+  background: #10141d;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding-right: 2px;
+  -webkit-app-region: no-drag;   /* the titlebar drags; this must stay clickable */
+}
+#url-text {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: 0;
+  outline: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  padding: 4px 8px;
+  text-overflow: ellipsis;
+  user-select: text;
+  cursor: text;
+}
+#url-text:focus { color: var(--text); }
+#url-open {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+  flex: 0 0 22px;
+}
+#url-open:hover { background: #232b3d; color: var(--text); }
+#url-open svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
 
 #tb-actions { margin-left: auto; display: flex; -webkit-app-region: no-drag; }
 #tb-actions button {

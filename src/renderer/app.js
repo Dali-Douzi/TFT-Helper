@@ -26,6 +26,7 @@ const ctxEl = document.getElementById('ctx');
 const findBar = document.getElementById('findbar');
 const findInput = document.getElementById('find-input');
 const findCount = document.getElementById('find-count');
+const urlText = document.getElementById('url-text');
 
 /**
  * Present as plain Chrome. Electron's default UA carries "Electron/x" and the
@@ -147,7 +148,10 @@ function ensureView(site) {
   wrap.className = 'view-wrap';
 
   const webview = document.createElement('webview');
-  webview.setAttribute('src', site.url);
+  // lastUrl is wherever this site was when you last closed the app; site.url is
+  // the home address you configured. Restoring the former is the whole point of
+  // reopening where you left off.
+  webview.setAttribute('src', site.lastUrl || site.url);
   webview.setAttribute('partition', 'persist:site-' + site.id); // per-site cookies/storage
   webview.setAttribute('useragent', USER_AGENT);
   webview.setAttribute('allowpopups', '');
@@ -182,7 +186,7 @@ function buildFallback(site) {
   const open = document.createElement('button');
   open.className = 'primary';
   open.textContent = 'Open in browser';
-  open.onclick = () => api.openExternal(site.url);
+  open.onclick = () => api.openExternal(site.lastUrl || site.url);
 
   const retry = document.createElement('button');
   retry.className = 'ghost';
@@ -190,7 +194,7 @@ function buildFallback(site) {
   retry.onclick = () => {
     const v = views.get(site.id);
     v.wrap.classList.remove('failed');
-    try { v.webview.loadURL(site.url); } catch { v.webview.reload(); }
+    try { v.webview.loadURL(site.lastUrl || site.url); } catch { v.webview.reload(); }
   };
 
   row.append(open, retry);
@@ -252,6 +256,23 @@ function wireViewEvents(v) {
   webview.addEventListener('render-process-gone', (e) =>
     fail('Renderer stopped: ' + (e.reason || 'unknown')));
 
+  // did-navigate covers real page loads; did-navigate-in-page covers the
+  // history.pushState kind that single-page sites use - YouTube moving from the
+  // home page to a video never fires the former.
+  const onNavigated = (e) => {
+    rememberUrl(site, e.url);
+    if (site.id === activeId) updateUrlBar();
+  };
+  webview.addEventListener('did-navigate', onNavigated);
+  webview.addEventListener('did-navigate-in-page', (e) => {
+    if (e.isMainFrame !== false) onNavigated(e);
+  });
+
+  // The main process needs this mapping to read every live URL at quit time.
+  webview.addEventListener('dom-ready', () => {
+    try { api.registerView(site.id, webview.getWebContentsId()); } catch { /* detached */ }
+  });
+
   webview.addEventListener('page-favicon-updated', (e) => {
     const icon = (e.favicons || [])[0];
     if (!icon || icon === site.icon) return;
@@ -306,6 +327,7 @@ function activate(id) {
 
   renderSidebar();
   updateProgress();
+  updateUrlBar();
   document.title = site.name + ' - TFT Helper';
   api.setActive(id);
 
@@ -362,10 +384,14 @@ dialog.addEventListener('close', () => {
     const urlChanged = site.url !== url;
     site.name = name;
     site.url = url;
-    // Changing the URL means the live webview points at the old address.
-    if (urlChanged && views.has(site.id)) {
-      views.get(site.id).webview.loadURL(url);
-      site.icon = null;
+    // Changing the URL means the live webview points at the old address, and
+    // any remembered position within the old site is meaningless now.
+    if (urlChanged) {
+      delete site.lastUrl;
+      if (views.has(site.id)) {
+        views.get(site.id).webview.loadURL(url);
+        site.icon = null;
+      }
     }
   } else {
     const id = 'site-' + Date.now().toString(36);
@@ -495,6 +521,44 @@ function setClickThroughUI(on) {
 }
 
 document.getElementById('tb-close').onclick = () => api.win.hide();
+
+/* ------------------------------------------------------------------------ */
+/* Address bar                                                               */
+/* ------------------------------------------------------------------------ */
+
+let urlSaveTimer = null;
+
+/**
+ * Remember where a site is now, so reopening the app lands on the same page.
+ *
+ * Debounced: a single-page site can fire a burst of these while you click
+ * around, and every save rewrites the config file.
+ */
+function rememberUrl(site, url) {
+  if (!url || !/^https?:/i.test(url)) return;   // about:blank, error pages, data:
+  if (site.lastUrl === url) return;
+  site.lastUrl = url;
+  clearTimeout(urlSaveTimer);
+  urlSaveTimer = setTimeout(persist, 800);
+}
+
+function updateUrlBar() {
+  const v = views.get(activeId);
+  let url = '';
+  if (v) {
+    try { url = v.webview.getURL(); } catch { /* guest not attached yet */ }
+  }
+  const site = sites.find((s) => s.id === activeId);
+  if (!url || !/^https?:/i.test(url)) url = (site && (site.lastUrl || site.url)) || '';
+  urlText.value = url;
+  urlText.title = url;
+}
+
+// Read-only, so a click is only ever about copying it.
+urlText.addEventListener('focus', () => urlText.select());
+document.getElementById('url-open').onclick = () => {
+  if (urlText.value) api.openExternal(urlText.value);
+};
 
 /* ------------------------------------------------------------------------ */
 /* Find in page (Ctrl+F)                                                     */

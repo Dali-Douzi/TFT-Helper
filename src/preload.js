@@ -24,6 +24,12 @@ contextBridge.exposeInMainWorld('tftHelper', {
   /** Open a URL in the system default browser. */
   openExternal: (url) => ipcRenderer.send('shell:open-external', url),
 
+  /**
+   * Tell the main process which webContents belongs to which site, so it can
+   * read every live URL at quit time (see the sweep in before-quit).
+   */
+  registerView: (siteId, webContentsId) => ipcRenderer.send('view:register', siteId, webContentsId),
+
   /** Keyboard commands and mode changes forwarded from the main process. */
   onCommand: (cb) => ipcRenderer.on('command', (_e, msg) => cb(msg)),
 

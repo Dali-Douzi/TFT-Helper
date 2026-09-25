@@ -14,7 +14,7 @@
  * Node access (contextIsolation on, nodeIntegration off).
  */
 
-const { app, BrowserWindow, Menu, Tray, globalShortcut, ipcMain, screen, shell } = require('electron');
+const { app, BrowserWindow, Menu, Tray, globalShortcut, ipcMain, screen, shell, webContents } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const diagnostics = require('./diagnostics');
@@ -686,6 +686,29 @@ ipcMain.on('state:set-active', (_e, id) => {
 
 ipcMain.on('shell:open-external', (_e, url) => openExternal(url));
 
+// siteId -> webContents id of that site's <webview>, reported by the renderer.
+const viewContents = new Map();
+ipcMain.on('view:register', (_e, siteId, wcId) => {
+  if (typeof siteId === 'string' && Number.isInteger(wcId)) viewContents.set(siteId, wcId);
+});
+
+/**
+ * Read the live address of every open site straight from its webContents.
+ *
+ * The renderer debounces its own URL saves, so a quit moments after navigating
+ * would otherwise lose that last move. Asking the guests directly at quit time
+ * closes that window.
+ */
+function captureLiveUrls() {
+  if (!config || !Array.isArray(config.sites)) return;
+  for (const site of config.sites) {
+    const wc = viewContents.has(site.id) ? webContents.fromId(viewContents.get(site.id)) : null;
+    if (!wc || wc.isDestroyed()) continue;
+    const url = wc.getURL();
+    if (url && /^https?:/i.test(url)) site.lastUrl = url;
+  }
+}
+
 /* Custom titlebar (the window is frameless, so these replace the OS buttons) */
 ipcMain.on('win:hide', () => {
   panelWanted = false;
@@ -824,6 +847,7 @@ if (!app.requestSingleInstanceLock()) {
 
 app.on('before-quit', () => {
   app.isQuitting = true;
+  captureLiveUrls();
   clearInterval(foregroundTimer);
   // Windows only reaps a tray icon when its owner exits cleanly; without this
   // a ghost icon sits there until you hover over it.
